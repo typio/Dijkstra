@@ -12,7 +12,7 @@ const fontSize = 16;
 
 function preload() {
     // JSON of 1000 largest USA cities
-    let url = 'https://api.myjson.com/bins/sw1o2'
+    let url = 'https://raw.githubusercontent.com/typio/Dijkstra/master/cities.json'
     citiesJSON = loadJSON(url);
 }
 
