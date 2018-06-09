@@ -1,6 +1,7 @@
 // Djikstra's Algorithm
 
 let citiesJSON, cities;
+let roads;
 
 let numberOfCitiesSlider;
 let numberOfCities = 50;
@@ -9,6 +10,10 @@ let selected1, selected2;
 let lastSelected = 2;
 
 const fontSize = 16;
+
+const distanceAccuracy = 1 // this is a factor, it will be multiplied by the number of cities
+let averageDistance;
+let path = []; // and array of cities start to finish representing path
 
 function preload() {
     // JSON of 1000 largest USA cities
@@ -30,6 +35,7 @@ function setup() {
 
 function resetSketch(num) {
     cities = [];
+    roads = [];
 
     numberOfCities = numberOfCitiesSlider.value();
 
@@ -75,12 +81,7 @@ function draw() {
         ellipse(cities[i].x, cities[i].y, cities[i].r);
     }
 
-    // draw line connecting cities
-    if (selected1 != undefined && selected2 != undefined) {
-        stroke(255, 34, 51);
-        line(selected1.x, selected1.y, selected2.x, selected2.y);
-        noStroke();
-    }
+    drawPath(1); // 1 for single line, 0 for path lines
 
     // text labels for selected cities
     if (lastSelected === 2) {
@@ -93,6 +94,49 @@ function draw() {
 
     if (numberOfCitiesSlider.value() != numberOfCities) {
         resetSketch(numberOfCitiesSlider.value());
+    }
+}
+
+function dijstra() {
+    /////////////////////////////////////////
+    // oh geez this is going to be hard :( //
+    /////////////////////////////////////////
+
+    // max length of roads needs to adapt to average distance between cities
+    let distances = [];
+
+    // instead of doing difficult combinatorics i'm going to pick random cities and find the nearest one, 
+    // not as literally perfect but it doesn't need to be (probably)
+
+    for (let i = 0; i < cities.length * distanceAccuracy; i++) {
+        let randomCity = map(Math.random(), 0, 1, 0, cities.length); // this probably isn't the best way to pick a random city
+
+        // this is going to be crazy inefficient, i'm making massive nested loops this is dumb
+        let closest = 0;
+        let closestToRandomCityDistance = distance(cities[randomCity].x, cities[closest].x, cities[randomCity].y, cities[closest].y);
+
+        // multiplying by distanceAccuracy should be tested for accuracy at lower levels
+        for (let i = 0; i < cities.length * distanceAccuracy; i++) {
+            if (distance(cities[randomCity].x, cities[i].x, cities[randomCity].y, cities[i].y) < closestToRandomCityDistance) {
+                closest = i;
+            }
+        }
+
+        // add the closest distance to array of distances
+        distances.push(distance(cities[randomCity].x, cities[closest].x, cities[randomCity].y, cities[closest].y));
+    }
+
+    //    MEAN      = {                         SUM OF ALL ARRAY VALUES                            } / {# OF DISTANCES}
+    averageDistance = distances.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / distances.length;
+
+    for (let i = 0; i < cities.length; i++) {
+        let weight = distance(from.x, to.x, from.y, to.y)
+
+        roads.push({
+            from,
+            to,
+            weight
+        })
     }
 }
 
@@ -121,6 +165,24 @@ function drawSelected2() {
     }
 }
 
+function drawPath(version) {
+    if (version) {
+        // draw line connecting 2 cities - this is totally depracated ¯\_(ツ)_/¯
+        if (selected1 != undefined && selected2 != undefined) {
+            stroke(255, 34, 51);
+            line(selected1.x, selected1.y, selected2.x, selected2.y);
+            noStroke();
+        }
+    } else {
+        // draw a line between every city in path
+        for (let i = 0; i < path.length - 1; i++) {
+            stroke(255, 34, 51);
+            line(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
+            noStroke();
+        }
+    }
+}
+
 // functionality for selecting cities
 function mousePressed() {
     selectCity();
@@ -142,7 +204,7 @@ function mercY(lat) {
 }
 
 function distance(x1, x2, y1, y2) {
-    // distance isn't in any regular units but that's ok bc it's consistent and is the forms the same ratios
+    // distance isn't in any regular units but that's ok bc it's consistent and forms the same ratios
     return sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
 }
 
@@ -154,6 +216,7 @@ function selectCity() {
         ds.push(d);
     }
 
+    // haha look at my pro es6
     const min = Math.min(...ds)
     if (min < 20) {
         console.log(cities[ds.indexOf(min)]);
