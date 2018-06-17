@@ -4,36 +4,151 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="shortcut icon" href="data:image/x-icon;," type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans|Roboto" rel="stylesheet">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Dijkstra</title>
 
     <style>
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #000;
+        }
+
         * {
-            background: #f2f3f4;
-            overflow: hidden;
             margin: 0;
+        }
+
+        html {
+            background: #f2f3f4;
+        }
+
+        .desc {
+            height: 100vh;
+            width: 100vh;
+
+            margin: auto;
+            width: 50%;
+        }
+
+        p {
             font-family: monospace;
             user-select: none;
+
+            font-family: "Roboto", sans-serif;
+            font-size: 1.05em;
+            letter-spacing: .08em;
+            line-height: 160%;
+
+            text-indent: 50px;
+
+            margin-top: 15vh;
+
+            padding-left: 16%;
+            padding-right: 16%;
         }
+
+        .scroll-btn {
+            height: 60px;
+            width: 220px;
+
+            margin: auto;
+            margin-top: 20vh;
+
+            font-family: 'Lato', sans-serif;
+            color: #000;
+
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            text-decoration: none;
+            text-transform: uppercase;
+            overflow: hidden;
+            letter-spacing: .08em;
+
+            cursor: pointer;
+            display: block;
+            position: relative;
+            border: 2px solid #ff2233;
+            transition: all 0.4s cubic-bezier(0.215, 0.61, 0.355, 1) 0s;
+        }
+
+        .scroll-btn:hover {
+            color: #fff !important;
+            background-color: transparent;
+            text-shadow: none;
+        }
+
+        .scroll-btn:hover:before {
+            bottom: 0%;
+            top: auto;
+            height: 100%;
+        }
+
+        .scroll-btn:before {
+            display: block;
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            height: 0px;
+            width: 100%;
+            z-index: -1;
+            content: '';
+            color: #000 !important;
+            background: #ff2233;
+            transition: all 0.4s cubic-bezier(0.215, 0.61, 0.355, 1) 0s;
+        }
+
+
 
         [contenteditable="true"]:focus {
             outline: none;
         }
 
-        p {
-            position: absolute;
+        .toosmall {
+            display: none;
+        }
+
+        @media only screen and (orientation: portrait),
+        (max-width: 600) {
+            #canvas,
+            .desc,
+            button,
+            input {
+                display: none;
+            }
+
+            .toosmall {
+                display: inline;
+            }
         }
     </style>
 </head>
 
+<div class='toosmall'>
+    <p>Landscape is recommended, and a computer is even better</p>
+</div>
+
 <body>
-    <p>no, this isn't a map of Sprint's coverage, instead it's an implementation of Dijkstra's algorithm!</p>
-    <br>
-    <p>right now it isnt done so a line is just being drawn between cities but when done it will connect cities such that the
-        shortest path is taken,</p>
-    <br>
-    <p>to render the cities i used a JSON dataset of the USA's 1000 largest cities by population and I converted their longitudinal
-        and latitudinal coordinates to x and y positions using the Mercator projection</p>
+    <div class='desc'>
+        <p> No, this isn't a map of Sprint's coverage, it's an implementation of Dijkstra's algorithm! The concept is to find
+            the shortest path between cities to get from one to another, for example, if Los Angeles and New York City were
+            chosen, lines would be drawn connecting intermediary cities, such that the total line length is minimized. To
+            render the cities I used a JSON dataset of the USA's 1000 largest cities by population and I converted their
+            longitudinal and latitudinal coordinates to x and y positions using the Mercator projection. Of course direct
+            lines could not just be drawn between the two chosen cities, instead, to facilitate the path-finding I needed
+            paths, since I did not have an accompanying dataset of roads, I had to approximate my own. To do this I created
+            a road between every city that was at or below the average distance between cities. All the path-finding will
+            made use of these roads. A problem this road solution did not account for however was connecting the east and
+            west coasts, as when there are few cities, the sides tend to be isolated, to hopefully compensate for this there
+            is always a road between LA and NYC. The purpose of this project was to explore advanced algorithms.
+        </p>
+        <button onclick='window.scrollTo(0, document.body.scrollHeight);' class='scroll-btn'>enter</button>
+    </div>
+    <div id='canvas'></div>
 </body>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.6.1/p5.min.js"></script>
