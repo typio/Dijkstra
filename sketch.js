@@ -11,7 +11,7 @@ let lastSelected = 2;
 
 const fontSize = 16;
 
-const distanceAccuracy = 1 // this is a factor, it will be multiplied by the number of cities
+const distanceAccuracy = 1000 // this is a factor, it will be multiplied by the number of cities
 let averageDistance;
 let path = []; // and array of cities start to finish representing path
 
@@ -22,9 +22,9 @@ function preload() {
 }
 
 function setup() {
-    c = createCanvas(windowWidth, windowHeight);
-    numberOfCitiesSlider = createSlider(2, 1000, 50);
-    numberOfCitiesSlider.position(windowWidth * .4, windowHeight * .95);
+    c = createCanvas(windowWidth * .9, windowHeight);
+    numberOfCitiesSlider = createSlider(2, 1000, numberOfCities);
+    numberOfCitiesSlider.position(width * .4, height * .95);
 
     noStroke();
     textSize(fontSize);
@@ -63,7 +63,7 @@ function resetSketch(num) {
 
 // isn't run if browser is maximized but putting resetSketch() in draw() would be too intrusive
 window.onresize = function () {
-    c.size(windowWidth, windowHeight);
+    c.size(windowWidth * .9, windowHeight);
     resetSketch(numberOfCitiesSlider.value());
 };
 
@@ -97,10 +97,14 @@ function draw() {
     }
 }
 
-function dijstra() {
+function dijkstra() {
     /////////////////////////////////////////
     // oh geez this is going to be hard :( //
     /////////////////////////////////////////
+
+    if (selected1 == undefined || selected2 == undefined) {
+        return;
+    }
 
     // max length of roads needs to adapt to average distance between cities
     let distances = [];
@@ -109,36 +113,67 @@ function dijstra() {
     // not as literally perfect but it doesn't need to be (probably)
 
     for (let i = 0; i < cities.length * distanceAccuracy; i++) {
-        let randomCity = map(Math.random(), 0, 1, 0, cities.length); // this probably isn't the best way to pick a random city
+        let randomCity1 = floor(map(Math.random(), 0, 1, 0, cities.length)); // this probably isn't the best way to pick a random city
+        let randomCity2 = floor(map(Math.random(), 0, 1, 0, cities.length));
 
         // this is going to be crazy inefficient, i'm making massive nested loops this is dumb
         let closest = 0;
-        let closestToRandomCityDistance = distance(cities[randomCity].x, cities[closest].x, cities[randomCity].y, cities[closest].y);
+        let closestToRandomCityDistance = distance(cities[randomCity1].x, cities[closest].x, cities[randomCity1].y, cities[closest].y);
 
         // multiplying by distanceAccuracy should be tested for accuracy at lower levels
-        for (let i = 0; i < cities.length * distanceAccuracy; i++) {
-            if (distance(cities[randomCity].x, cities[i].x, cities[randomCity].y, cities[i].y) < closestToRandomCityDistance) {
-                closest = i;
+        for (let i = 0; i < cities.length; i++) {
+            if (distance(cities[randomCity1].x, cities[randomCity2].x, cities[randomCity1].y, cities[randomCity2].y) < closestToRandomCityDistance) {
+                closest = randomCity2;
             }
         }
 
         // add the closest distance to array of distances
-        distances.push(distance(cities[randomCity].x, cities[closest].x, cities[randomCity].y, cities[closest].y));
+        distances.push(distance(cities[randomCity1].x, cities[closest].x, cities[randomCity1].y, cities[closest].y));
     }
 
     //    MEAN      = {                         SUM OF ALL ARRAY VALUES                            } / {# OF DISTANCES}
     averageDistance = distances.reduce((accumulator, currentValue) => accumulator + currentValue, 0) / distances.length;
 
-    for (let i = 0; i < cities.length; i++) {
-        let weight = distance(from.x, to.x, from.y, to.y)
+    for (let times = 0; times < 10000; times++) {
+        let dist;
+        let from = cities[floor(map(Math.random(), 0, 1, 0, cities.length))];
+        let to = undefined;
 
-        roads.push({
-            from,
-            to,
-            weight
-        })
+        cities.forEach(city => {
+            // define weight early here so it doesn't have to be calculated for checks and pushing to roads[]
+            dist = distance(from.x, city.x, from.y, city.y);
+            // check if cities are different and in range
+            if (city != from && dist < averageDistance * 1.05) {
+                // check if road is already in roads[] by looking for same weight
+                if (roads.find(road => road.weight == dist) == undefined) {
+                    to = city;
+                }
+            }
+        });
+
+        let weight = dist;
+        if (to != undefined && weight != 0) {
+            roads.push({
+                from,
+                to,
+                weight
+            });
+        }
     }
+
+    let from = cities[0];
+    let to = cities[1];
+    let weight = distance(from.x, to.x, from.y, to.y);
+    roads.push({
+        from,
+        to,
+        weight
+    });
+
+    // to seperate out duplicate roads (there's a lot of those idk why)
+    roads = roads.filter((roads, index, self) => self.findIndex(r => r.weight === roads.weight) === index)
 }
+
 
 // these are in functions so they can be arranged such that the most recently changed is drawn on top without writing the same code 2x in draw()
 function drawSelected1() {
@@ -166,21 +201,27 @@ function drawSelected2() {
 }
 
 function drawPath(version) {
+    stroke(255, 34, 51);
     if (version) {
         // draw line connecting 2 cities - this is totally depracated ¯\_(ツ)_/¯
         if (selected1 != undefined && selected2 != undefined) {
             stroke(255, 34, 51);
             line(selected1.x, selected1.y, selected2.x, selected2.y);
-            noStroke();
         }
     } else {
         // draw a line between every city in path
         for (let i = 0; i < path.length - 1; i++) {
-            stroke(255, 34, 51);
             line(path[i].x, path[i].y, path[i + 1].x, path[i + 1].y);
-            noStroke();
         }
     }
+
+    // draw roads
+
+    // stroke(51);
+    // roads.forEach(road => {
+    //     line(road.from.x, road.from.y, road.to.x, road.to.y);
+    // });
+    noStroke();
 }
 
 // functionality for selecting cities
@@ -209,7 +250,7 @@ function distance(x1, x2, y1, y2) {
 }
 
 function selectCity() {
-    let ds = [];
+    let ds = []; // stands for distances
 
     for (let i = 0; i < cities.length; i++) {
         let d = distance(mouseX, cities[i].x, mouseY, cities[i].y)
